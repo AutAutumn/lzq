@@ -1,384 +1,650 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CYBER_MUYU.exe | 电子修行终端</title>
-    <style>
-        :root {
-            --bg: #0d0d0d;
-            --gold: #ffd700;
-            --red: #ff3333;
-            --text: #e0e0e0;
-            --glow-gold: 0 0 20px rgba(255, 215, 0, 0.6);
-            --glow-red: 0 0 20px rgba(255, 51, 51, 0.6);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ethereal Dreamscape | 梦幻花海</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* =========================================
+   1. CORE VARIABLES & RESET
+   ========================================= */
+:root {
+    --gold: #d4af37;
+    --gold-light: #f3e5ab;
+    --pink-soft: #ffb7c5;
+    --pink-deep: #e6a0b4;
+    --lavender: #c8a2c8;
+    --sunset-orange: #ff9a76;
+    --glass-bg: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --glass-blur: 24px;
+    --text-main: #fff;
+    --text-muted: rgba(255, 255, 255, 0.75);
+}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Courier New', monospace;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* --- 顶部数据面板 --- */
-        .stats {
-            position: absolute;
-            top: 30px;
-            display: flex;
-            gap: 40px;
-            font-size: 1.2rem;
-            z-index: 10;
-        }
-        .stat-item { text-align: center; }
-        .stat-label { font-size: 0.7rem; opacity: 0.6; letter-spacing: 2px; margin-bottom: 5px; }
-        .stat-value { font-size: 2rem; font-weight: bold; transition: color 0.2s; }
-        .merit { color: var(--gold); text-shadow: var(--glow-gold); }
-        .grudge { color: var(--red); text-shadow: var(--glow-red); }
+html { scroll-behavior: smooth; }
 
-        /* --- 木鱼主体 --- */
-        .muyu-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        .muyu {
-            font-size: 120px;
-            transition: transform 0.08s ease-out;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
-        }
-        .muyu.hit { transform: scale(0.85); }
-        .muyu.hit-right { transform: scale(0.85) rotate(-5deg); }
+body {
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+    background: #1a0f14;
+    color: var(--text-main);
+    overflow-x: hidden;
+    min-height: 100vh;
+    line-height: 1.6;
+}
 
-        /* --- Combo 显示 --- */
-        .combo {
-            position: absolute;
-            bottom: -50px;
-            font-size: 1.5rem;
-            opacity: 0;
-            transition: opacity 0.3s;
-            letter-spacing: 3px;
-        }
-        .combo.active { opacity: 1; }
+/* =========================================
+   2. DREAMY BACKGROUND SCENE (Pure CSS)
+   ========================================= */
+.scene-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
 
-        /* --- 浮动文字动画 --- */
-        .float-text {
-            position: absolute;
-            font-size: 1.2rem;
-            font-weight: bold;
-            pointer-events: none;
-            animation: floatUp 0.8s ease-out forwards;
-            z-index: 20;
-        }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
-        }
+/* 2.1 Golden Hour Sky Gradient */
+.sky {
+    position: absolute;
+    width: 100%; height: 100%;
+    background: 
+        radial-gradient(ellipse at 50% 0%, rgba(255,200,150,0.4) 0%, transparent 60%),
+        linear-gradient(180deg, 
+            #2d1b3d 0%, 
+            #5c3a6e 15%, 
+            #a86c8f 30%, 
+            #e6a0b4 45%, 
+            #ffcfb0 60%, 
+            #ffe8d6 75%,
+            #fff5ee 100%
+        );
+}
 
-        /* --- 粒子画布 --- */
-        #fx-canvas {
-            position: fixed;
-            inset: 0;
-            z-index: 5;
-            pointer-events: none;
-        }
+/* 2.2 Sun Glow & Volumetric Rays */
+.sun-glow {
+    position: absolute;
+    top: 15%; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,240,220,0.9) 0%, rgba(255,200,150,0.4) 40%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(20px);
+    animation: sunPulse 8s ease-in-out infinite alternate;
+}
 
-        /* --- Glitch 故障效果 --- */
-        .glitch-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            pointer-events: none;
-            opacity: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 2px,
-                rgba(255, 0, 0, 0.1) 2px,
-                rgba(255, 0, 0, 0.1) 4px
-            );
-            mix-blend-mode: overlay;
-        }
-        .glitch-overlay.active {
-            animation: glitchFlash 0.15s steps(2) forwards;
-        }
-        @keyframes glitchFlash {
-            0% { opacity: 0.8; transform: translateX(-5px); }
-            50% { opacity: 0.6; transform: translateX(5px); }
-            100% { opacity: 0; transform: translateX(0); }
-        }
+.light-rays {
+    position: absolute;
+    top: -20%; left: 50%;
+    transform: translateX(-50%);
+    width: 200%; height: 120%;
+    background: conic-gradient(
+        from 0deg at 50% 0%,
+        transparent 0deg, rgba(255,240,220,0.08) 10deg, transparent 20deg,
+        transparent 30deg, rgba(255,240,220,0.05) 40deg, transparent 50deg,
+        transparent 60deg, rgba(255,240,220,0.08) 70deg, transparent 80deg,
+        transparent 90deg, rgba(255,240,220,0.05) 100deg, transparent 110deg,
+        transparent 360deg
+    );
+    animation: raysRotate 60s linear infinite;
+    pointer-events: none;
+}
 
-        /* --- 底部提示 --- */
-        .hint {
-            position: absolute;
-            bottom: 20px;
-            font-size: 0.7rem;
-            opacity: 0.3;
-            letter-spacing: 1px;
-        }
+/* 2.3 Misty Horizon & Flower Field Base */
+.mist-layer {
+    position: absolute;
+    bottom: 20%; left: 0;
+    width: 100%; height: 40%;
+    background: linear-gradient(0deg, rgba(230,160,180,0.6) 0%, rgba(200,162,200,0.3) 40%, transparent 100%);
+    filter: blur(40px);
+    opacity: 0.8;
+}
 
-        /* --- 重置按钮 --- */
-        .reset-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: rgba(255,255,255,0.4);
-            padding: 5px 12px;
-            font-family: inherit;
-            font-size: 0.7rem;
-            cursor: pointer;
-            border-radius: 3px;
-            z-index: 20;
-            transition: all 0.3s;
-        }
-        .reset-btn:hover { border-color: var(--red); color: var(--red); }
-    </style>
+.flower-field-base {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 35%;
+    background: 
+        radial-gradient(ellipse at 20% 100%, rgba(255,183,197,0.8) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.6) 0%, transparent 40%),
+        radial-gradient(ellipse at 80% 100%, rgba(255,183,197,0.7) 0%, transparent 50%),
+        linear-gradient(0deg, #3d2030 0%, rgba(100,50,70,0.8) 30%, transparent 100%);
+}
+
+/* 2.4 Lens Flare Overlay */
+.lens-flare {
+    position: absolute;
+    top: 20%; left: 45%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 40%);
+    mix-blend-mode: screen;
+    animation: flareDrift 12s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+/* 2.5 Dreamy Haze Overlay */
+.haze-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(26,15,20,0.4) 100%);
+    pointer-events: none;
+}
+
+/* Animations */
+@keyframes sunPulse { 0% { opacity: 0.8; transform: translateX(-50%) scale(1); } 100% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
+@keyframes raysRotate { from { transform: translateX(-50%) rotate(0deg); } to { transform: translateX(-50%) rotate(360deg); } }
+@keyframes flareDrift { 0% { opacity: 0.5; transform: translate(0,0); } 100% { opacity: 0.8; transform: translate(30px, -20px); } }
+
+/* =========================================
+   3. PARTICLE SYSTEMS (Petals, Fireflies, Hearts)
+   ========================================= */
+.petal {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 50% 0 50% 0;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.firefly {
+    position: fixed;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: 50%;
+    background: #fffde0;
+    box-shadow: 0 0 6px 2px rgba(255,253,200,0.8), 0 0 15px 4px rgba(255,200,100,0.4);
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.heart-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+.heart-particle::before, .heart-particle::after {
+    content: ''; position: absolute;
+    width: 10px; height: 16px;
+    background: rgba(255,183,197,0.6);
+    border-radius: 50% 50% 0 0;
+}
+.heart-particle::before { left: 0; transform: rotate(-45deg); transform-origin: bottom right; }
+.heart-particle::after { left: 7px; transform: rotate(45deg); transform-origin: bottom left; }
+
+/* =========================================
+   4. UI LAYOUT & GLASSMORPHISM
+   ========================================= */
+.page-wrapper {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Navigation */
+.nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30px 0;
+    animation: fadeInDown 1.2s ease-out;
+}
+.nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    transition: color 0.3s;
+    position: relative;
+}
+.nav-links a::after {
+    content: ''; position: absolute; bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: var(--gold);
+    transition: width 0.3s ease;
+}
+.nav-links a:hover { color: #fff; }
+.nav-links a:hover::after { width: 100%; }
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 100px 0 80px;
+    animation: fadeInUp 1.5s ease-out;
+}
+.hero-tag {
+    font-size: 0.9rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 20px;
+    display: block;
+}
+.hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #fff 0%, var(--pink-soft) 50%, var(--gold-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.hero-divider {
+    width: 80px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 30px auto;
+    position: relative;
+}
+.hero-divider::after {
+    content: '♡'; position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gold);
+    font-size: 0.8rem;
+    background: transparent;
+    padding: 0 12px;
+}
+.hero-desc {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: 0 auto;
+    font-weight: 300;
+}
+
+/* Glass Cards Grid */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    padding: 40px 0 80px;
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 44px 36px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+    opacity: 0;
+    transform: translateY(40px);
+}
+.glass-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.8s ease, transform 0.8s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.glass-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+}
+.glass-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(230,160,180,0.15), 0 0 30px rgba(212,175,55,0.08);
+    border-color: rgba(212,175,55,0.4);
+}
+
+.card-icon {
+    width: 52px; height: 52px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 24px;
+    color: var(--gold-light);
+    background: rgba(212,175,55,0.06);
+}
+.card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #fff;
+}
+.card-line {
+    width: 40px; height: 1.5px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 14px 0 18px;
+}
+.card-text {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    line-height: 1.8;
+}
+
+/* Quote Section */
+.quote-section {
+    text-align: center;
+    padding: 60px 0 100px;
+    max-width: 700px;
+    margin: 0 auto;
+    opacity: 0; transform: translateY(30px);
+}
+.quote-section.visible { opacity: 1; transform: translateY(0); transition: all 1s ease; }
+.quote-card {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 24px;
+    padding: 56px 48px;
+    position: relative;
+}
+.quote-card::before {
+    content: '"'; position: absolute; top: 10px; left: 24px;
+    font-family: 'Playfair Display', serif;
+    font-size: 8rem; color: rgba(212,175,55,0.1);
+    line-height: 1; pointer-events: none;
+}
+.quote-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.92);
+}
+.quote-author {
+    margin-top: 28px;
+    font-size: 0.95rem;
+    color: var(--gold);
+    letter-spacing: 4px;
+    font-weight: 300;
+}
+
+/* CTA Button */
+.cta-wrapper { text-align: center; padding-bottom: 100px; opacity: 0; transform: translateY(20px); }
+.cta-wrapper.visible { opacity: 1; transform: translateY(0); transition: all 0.8s ease; }
+.cta-btn {
+    display: inline-block;
+    padding: 18px 52px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50px;
+    color: var(--gold-light);
+    text-decoration: none;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: rgba(212,175,55,0.05);
+    transition: all 0.5s ease;
+    position: relative; overflow: hidden;
+}
+.cta-btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(255,183,197,0.2));
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.5s ease;
+    border-radius: 50px;
+}
+.cta-btn:hover { color: #fff; border-color: var(--gold-light); box-shadow: 0 0 30px rgba(212,175,55,0.2); }
+.cta-btn:hover::before { transform: scaleX(1); }
+.cta-btn span { position: relative; z-index: 1; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 2px;
+}
+
+/* Keyframes */
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-links { display: none; }
+    .hero { padding: 60px 0 50px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .quote-card { padding: 40px 28px; }
+    .quote-text { font-size: 1.3rem; }
+}
+</style>
 </head>
 <body>
-    <canvas id="fx-canvas"></canvas>
-    <div class="glitch-overlay" id="glitch"></div>
 
-    <button class="reset-btn" onclick="resetData(event)">RESET DATA</button>
+<!-- ===== BACKGROUND SCENE ===== -->
+<div class="scene-container">
+    <div class="sky"></div>
+    <div class="sun-glow"></div>
+    <div class="light-rays"></div>
+    <div class="mist-layer"></div>
+    <div class="flower-field-base"></div>
+    <div class="lens-flare"></div>
+    <div class="haze-overlay"></div>
+</div>
 
-    <div class="stats">
-        <div class="stat-item">
-            <div class="stat-label">MERIT 功德</div>
-            <div class="stat-value merit" id="merit-val">0</div>
+<!-- ===== MAIN CONTENT ===== -->
+<div class="page-wrapper">
+    
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-logo">Éternel ♡</div>
+        <ul class="nav-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Story</a></li>
+            <li><a href="#">Gallery</a></li>
+            <li><a href="#">Moments</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <span class="hero-tag">Welcome to the Dreamscape</span>
+        <h1 class="hero-title">Where Petals<br>Meet the Light</h1>
+        <div class="hero-divider"></div>
+        <p class="hero-desc">漫步在无尽的粉色樱花与白色满天星之间，感受金色夕阳与薰衣草色光芒交织的梦幻世界。每一片飘落的花瓣，都是一封未寄出的情书。</p>
+    </section>
+
+    <!-- Glass Cards -->
+    <section class="cards-grid">
+        <div class="glass-card reveal">
+            <div class="card-icon">✿</div>
+            <h3 class="card-title">Cherry Blossom Fields</h3>
+            <div class="card-line"></div>
+            <p class="card-text">无尽花海在黄金时刻绽放，阳光穿透花瓣间隙，营造出神圣而温柔的体积光效果，仿佛置身于永恒的春日梦境。</p>
         </div>
-        <div class="stat-item">
-            <div class="stat-label">GRUDGE 怨气</div>
-            <div class="stat-value grudge" id="grudge-val">0</div>
+        <div class="glass-card reveal">
+            <div class="card-icon">✧</div>
+            <h3 class="card-title">Golden Hour Magic</h3>
+            <div class="card-line"></div>
+            <p class="card-text">温暖的金色夕阳与柔和的薰衣草色环境光交融，萤火虫在暮色中起舞，镜头光晕为画面增添电影般的质感。</p>
         </div>
+        <div class="glass-card reveal">
+            <div class="card-icon">♡</div>
+            <h3 class="card-title">Ethereal Romance</h3>
+            <div class="card-line"></div>
+            <p class="card-text">毛玻璃质感的卡片悬浮于花海之上，精致的金色线条勾勒出优雅的轮廓，心形粒子在空气中缓缓升腾。</p>
+        </div>
+    </section>
+
+    <!-- Quote -->
+    <section class="quote-section reveal">
+        <div class="quote-card">
+            <p class="quote-text">In the garden of memory, we walk forever among cherry blossoms, bathed in the golden light of an eternal sunset, where every petal carries a whispered promise.</p>
+            <p class="quote-author">— A DREAMER'S JOURNAL</p>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-wrapper reveal">
+        <a href="#" class="cta-btn"><span>Enter the Dreamscape</span></a>
     </div>
 
-    <div class="muyu-container">
-        <div class="muyu" id="muyu">🪵</div>
-        <div class="combo" id="combo">COMBO x0</div>
-    </div>
-
-    <div class="hint">LEFT CLICK / SPACE = MERIT &nbsp;|&nbsp; RIGHT CLICK = GRUDGE</div>
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Crafted with love · Éternel Dreamscape © 2026</p>
+    </footer>
+</div>
 
 <script>
-// ============================================
-// ⚙️ STATE MANAGEMENT
-// ============================================
-const STATE = {
-    merit: parseInt(localStorage.getItem('cyber_muyu_merit') || '0'),
-    grudge: parseInt(localStorage.getItem('cyber_muyu_grudge') || '0'),
-    combo: 0,
-    lastHitTime: 0,
-    comboTimer: null
-};
+/* =========================================
+   PARTICLE SYSTEM ENGINE
+   ========================================= */
 
-const DOM = {
-    merit: document.getElementById('merit-val'),
-    grudge: document.getElementById('grudge-val'),
-    muyu: document.getElementById('muyu'),
-    combo: document.getElementById('combo'),
-    glitch: document.getElementById('glitch'),
-    canvas: document.getElementById('fx-canvas')
-};
-
-// 初始化显示
-DOM.merit.textContent = STATE.merit.toLocaleString();
-DOM.grudge.textContent = STATE.grudge.toLocaleString();
-
-function save() {
-    localStorage.setItem('cyber_muyu_merit', STATE.merit);
-    localStorage.setItem('cyber_muyu_grudge', STATE.grudge);
+// --- Floating Petals ---
+function createPetal() {
+    const petal = document.createElement('div');
+    petal.classList.add('petal');
+    
+    const size = Math.random() * 12 + 6;
+    const colors = [
+        'rgba(255,183,197,0.7)', 'rgba(255,200,210,0.6)',
+        'rgba(255,240,243,0.5)', 'rgba(230,160,180,0.6)',
+        'rgba(200,162,200,0.4)'
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const startX = Math.random() * window.innerWidth;
+    const duration = Math.random() * 10 + 8;
+    const sway = Math.random() * 200 - 100;
+    const rotation = Math.random() * 720;
+    
+    petal.style.cssText = `
+        width: ${size}px; height: ${size * 0.7}px;
+        background: ${color};
+        left: ${startX}px; top: -20px;
+        box-shadow: 0 0 ${size/3}px ${color};
+    `;
+    
+    // Use Web Animations API for unique per-petal keyframes
+    const animation = petal.animate([
+        { transform: `translateY(-20px) translateX(0) rotate(0deg)`, opacity: 0 },
+        { opacity: 0.8, offset: 0.1 },
+        { transform: `translateY(${window.innerHeight * 0.3}px) translateX(${sway}px) rotate(${rotation * 0.3}deg)`, opacity: 0.7, offset: 0.3 },
+        { transform: `translateY(${window.innerHeight * 0.6}px) translateX(${-sway * 0.5}px) rotate(${rotation * 0.6}deg)`, opacity: 0.5, offset: 0.6 },
+        { transform: `translateY(${window.innerHeight + 50}px) translateX(${sway * 0.3}px) rotate(${rotation}deg)`, opacity: 0 }
+    ], {
+        duration: duration * 1000,
+        easing: 'ease-in-out',
+        fill: 'forwards'
+    });
+    
+    document.body.appendChild(petal);
+    animation.onfinish = () => petal.remove();
 }
 
-function resetData(e) {
-    e.stopPropagation();
-    if (confirm('⚠️ 确定要清空所有功德和怨气吗？')) {
-        STATE.merit = 0;
-        STATE.grudge = 0;
-        STATE.combo = 0;
-        DOM.merit.textContent = '0';
-        DOM.grudge.textContent = '0';
-        DOM.combo.classList.remove('active');
-        save();
-    }
+// --- Fireflies ---
+function createFirefly() {
+    const ff = document.createElement('div');
+    ff.classList.add('firefly');
+    
+    const size = Math.random() * 4 + 2;
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight * 0.7 + window.innerHeight * 0.15;
+    const duration = Math.random() * 5 + 4;
+    const dx = Math.random() * 100 - 50;
+    const dy = Math.random() * -80 - 20;
+    
+    ff.style.cssText = `width:${size}px; height:${size}px; left:${x}px; top:${y}px;`;
+    
+    const animation = ff.animate([
+        { opacity: 0, transform: 'translate(0,0) scale(0.5)' },
+        { opacity: 1, transform: `translate(${dx*0.3}px,${dy*0.3}px) scale(1)`, offset: 0.25 },
+        { opacity: 0.5, transform: `translate(${dx*0.6}px,${dy*0.6}px) scale(0.8)`, offset: 0.5 },
+        { opacity: 1, transform: `translate(${dx}px,${dy}px) scale(1.1)`, offset: 0.75 },
+        { opacity: 0, transform: `translate(${dx*1.2}px,${dy*1.2}px) scale(0.3)` }
+    ], {
+        duration: duration * 1000,
+        easing: 'ease-in-out',
+        fill: 'forwards'
+    });
+    
+    document.body.appendChild(ff);
+    animation.onfinish = () => ff.remove();
 }
 
-// ============================================
-// 🎯 CORE INTERACTION
-// ============================================
-function triggerMerit(x, y) {
-    STATE.merit++;
-    DOM.merit.textContent = STATE.merit.toLocaleString();
-    spawnFloatText(x, y, '功德 +1', '#ffd700');
-    spawnParticles(x, y, '#ffd700', 8);
-    animateMuyu('hit');
-    updateCombo();
-    save();
+// --- Heart Particles ---
+function createHeart() {
+    const heart = document.createElement('div');
+    heart.classList.add('heart-particle');
+    
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight * 0.4 + window.innerHeight * 0.5;
+    const duration = Math.random() * 6 + 6;
+    const scale = Math.random() * 0.6 + 0.3;
+    
+    heart.style.cssText = `left:${x}px; top:${y}px; transform:scale(${scale});`;
+    
+    const animation = heart.animate([
+        { opacity: 0, transform: `scale(${scale}) translateY(0)` },
+        { opacity: 0.6, offset: 0.15 },
+        { opacity: 0.4, transform: `scale(${scale * 0.7}) translateY(-200px)`, offset: 0.7 },
+        { opacity: 0, transform: `scale(${scale * 0.3}) translateY(-400px)` }
+    ], {
+        duration: duration * 1000,
+        easing: 'ease-out',
+        fill: 'forwards'
+    });
+    
+    document.body.appendChild(heart);
+    animation.onfinish = () => heart.remove();
 }
 
-function triggerGrudge(x, y) {
-    STATE.grudge++;
-    DOM.grudge.textContent = STATE.grudge.toLocaleString();
-    spawnFloatText(x, y, '怨气 -1', '#ff3333');
-    spawnParticles(x, y, '#ff3333', 12);
-    animateMuyu('hit-right');
-    triggerGlitch();
-    updateCombo();
-    save();
-}
+// Start particle systems
+setInterval(createPetal, 500);
+setInterval(createFirefly, 1800);
+setInterval(createHeart, 3000);
 
-function animateMuyu(cls) {
-    DOM.muyu.classList.remove('hit', 'hit-right');
-    void DOM.muyu.offsetWidth; // force reflow
-    DOM.muyu.classList.add(cls);
-    setTimeout(() => DOM.muyu.classList.remove(cls), 80);
-}
+// Initial burst
+for (let i = 0; i < 10; i++) setTimeout(createPetal, i * 150);
+for (let i = 0; i < 5; i++) setTimeout(createFirefly, i * 400);
+for (let i = 0; i < 3; i++) setTimeout(createHeart, i * 600);
 
-function updateCombo() {
-    const now = Date.now();
-    const dt = now - STATE.lastHitTime;
-    STATE.lastHitTime = now;
 
-    if (dt < 500) {
-        STATE.combo++;
-    } else {
-        STATE.combo = 1;
-    }
+/* =========================================
+   SCROLL REVEAL OBSERVER
+   ========================================= */
+const revealElements = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
 
-    DOM.combo.textContent = `COMBO x${STATE.combo}`;
-    DOM.combo.classList.add('active');
-    DOM.combo.style.color = STATE.combo > 10 ? '#ff00ff' : '#fff';
+revealElements.forEach(el => observer.observe(el));
 
-    clearTimeout(STATE.comboTimer);
-    STATE.comboTimer = setTimeout(() => {
-        STATE.combo = 0;
-        DOM.combo.classList.remove('active');
-    }, 800);
-}
 
-function triggerGlitch() {
-    DOM.glitch.classList.remove('active');
-    void DOM.glitch.offsetWidth;
-    DOM.glitch.classList.add('active');
-}
-
-// ============================================
-// ✨ FLOATING TEXT
-// ============================================
-function spawnFloatText(x, y, text, color) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.color = color;
-    el.style.textShadow = `0 0 10px ${color}`;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 800);
-}
-
-// ============================================
-// 🎆 PARTICLE SYSTEM
-// ============================================
-const ctx = DOM.canvas.getContext('2d');
-let W, H, particles = [];
-
-function resize() {
-    W = DOM.canvas.width = window.innerWidth;
-    H = DOM.canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-class Particle {
-    constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 4 + 2;
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
-        this.life = 1;
-        this.decay = Math.random() * 0.03 + 0.02;
-        this.size = Math.random() * 4 + 2;
-        this.color = color;
-    }
-    update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += 0.1; // gravity
-        this.life -= this.decay;
-    }
-    draw() {
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-    }
-}
-
-function spawnParticles(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
-        particles.push(new Particle(x, y, color));
-    }
-}
-
-function animateParticles() {
-    ctx.clearRect(0, 0, W, H);
-    for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update();
-        particles[i].draw();
-        if (particles[i].life <= 0) particles.splice(i, 1);
-    }
-    requestAnimationFrame(animateParticles);
-}
-animateParticles();
-
-// ============================================
-// 🖱️ EVENT LISTENERS
-// ============================================
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.reset-btn')) return;
-    triggerMerit(e.clientX, e.clientY);
+/* =========================================
+   SUBTLE MOUSE PARALLAX
+   ========================================= */
+document.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 2;
+    const y = (e.clientY / window.innerHeight - 0.5) * 2;
+    const scene = document.querySelector('.scene-container');
+    scene.style.transform = `translate(${x * -6}px, ${y * -4}px)`;
 });
-
-document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    triggerGrudge(e.clientX, e.clientY);
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-        e.preventDefault();
-        const rect = DOM.muyu.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        triggerMerit(cx, cy);
-    }
-});
-
-// 阻止移动端双击缩放
-document.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.reset-btn')) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    triggerMerit(touch.clientX, touch.clientY);
-}, { passive: false });
 </script>
 </body>
 </html>
