@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CYBER_MUYU.exe | 电子修行终端</title>
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --gold: #ffd700;
+            --red: #ff3333;
+            --text: #e0e0e0;
+            --glow-gold: 0 0 20px rgba(255, 215, 0, 0.6);
+            --glow-red: 0 0 20px rgba(255, 51, 51, 0.6);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        /* --- 顶部数据面板 --- */
+        .stats {
+            position: absolute;
+            top: 30px;
+            display: flex;
+            gap: 40px;
+            font-size: 1.2rem;
+            z-index: 10;
+        }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 0.7rem; opacity: 0.6; letter-spacing: 2px; margin-bottom: 5px; }
+        .stat-value { font-size: 2rem; font-weight: bold; transition: color 0.2s; }
+        .merit { color: var(--gold); text-shadow: var(--glow-gold); }
+        .grudge { color: var(--red); text-shadow: var(--glow-red); }
+
+        /* --- 木鱼主体 --- */
+        .muyu-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .muyu {
+            font-size: 120px;
+            transition: transform 0.08s ease-out;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
+        }
+        .muyu.hit { transform: scale(0.85); }
+        .muyu.hit-right { transform: scale(0.85) rotate(-5deg); }
+
+        /* --- Combo 显示 --- */
+        .combo {
+            position: absolute;
+            bottom: -50px;
+            font-size: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            letter-spacing: 3px;
+        }
+        .combo.active { opacity: 1; }
+
+        /* --- 浮动文字动画 --- */
+        .float-text {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 20;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
+        }
+
+        /* --- 粒子画布 --- */
+        #fx-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* --- Glitch 故障效果 --- */
+        .glitch-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 0, 0, 0.1) 2px,
+                rgba(255, 0, 0, 0.1) 4px
+            );
+            mix-blend-mode: overlay;
+        }
+        .glitch-overlay.active {
+            animation: glitchFlash 0.15s steps(2) forwards;
+        }
+        @keyframes glitchFlash {
+            0% { opacity: 0.8; transform: translateX(-5px); }
+            50% { opacity: 0.6; transform: translateX(5px); }
+            100% { opacity: 0; transform: translateX(0); }
+        }
+
+        /* --- 底部提示 --- */
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.7rem;
+            opacity: 0.3;
+            letter-spacing: 1px;
+        }
+
+        /* --- 重置按钮 --- */
+        .reset-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.4);
+            padding: 5px 12px;
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            border-radius: 3px;
+            z-index: 20;
+            transition: all 0.3s;
+        }
+        .reset-btn:hover { border-color: var(--red); color: var(--red); }
+    </style>
+</head>
+<body>
+    <canvas id="fx-canvas"></canvas>
+    <div class="glitch-overlay" id="glitch"></div>
+
+    <button class="reset-btn" onclick="resetData(event)">RESET DATA</button>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-label">MERIT 功德</div>
+            <div class="stat-value merit" id="merit-val">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">GRUDGE 怨气</div>
+            <div class="stat-value grudge" id="grudge-val">0</div>
+        </div>
+    </div>
+
+    <div class="muyu-container">
+        <div class="muyu" id="muyu">🪵</div>
+        <div class="combo" id="combo">COMBO x0</div>
+    </div>
+
+    <div class="hint">LEFT CLICK / SPACE = MERIT &nbsp;|&nbsp; RIGHT CLICK = GRUDGE</div>
+
+<script>
+// ============================================
+// ⚙️ STATE MANAGEMENT
+// ============================================
+const STATE = {
+    merit: parseInt(localStorage.getItem('cyber_muyu_merit') || '0'),
+    grudge: parseInt(localStorage.getItem('cyber_muyu_grudge') || '0'),
+    combo: 0,
+    lastHitTime: 0,
+    comboTimer: null
+};
+
+const DOM = {
+    merit: document.getElementById('merit-val'),
+    grudge: document.getElementById('grudge-val'),
+    muyu: document.getElementById('muyu'),
+    combo: document.getElementById('combo'),
+    glitch: document.getElementById('glitch'),
+    canvas: document.getElementById('fx-canvas')
+};
+
+// 初始化显示
+DOM.merit.textContent = STATE.merit.toLocaleString();
+DOM.grudge.textContent = STATE.grudge.toLocaleString();
+
+function save() {
+    localStorage.setItem('cyber_muyu_merit', STATE.merit);
+    localStorage.setItem('cyber_muyu_grudge', STATE.grudge);
+}
+
+function resetData(e) {
+    e.stopPropagation();
+    if (confirm('⚠️ 确定要清空所有功德和怨气吗？')) {
+        STATE.merit = 0;
+        STATE.grudge = 0;
+        STATE.combo = 0;
+        DOM.merit.textContent = '0';
+        DOM.grudge.textContent = '0';
+        DOM.combo.classList.remove('active');
+        save();
+    }
+}
+
+// ============================================
+// 🎯 CORE INTERACTION
+// ============================================
+function triggerMerit(x, y) {
+    STATE.merit++;
+    DOM.merit.textContent = STATE.merit.toLocaleString();
+    spawnFloatText(x, y, '功德 +1', '#ffd700');
+    spawnParticles(x, y, '#ffd700', 8);
+    animateMuyu('hit');
+    updateCombo();
+    save();
+}
+
+function triggerGrudge(x, y) {
+    STATE.grudge++;
+    DOM.grudge.textContent = STATE.grudge.toLocaleString();
+    spawnFloatText(x, y, '怨气 -1', '#ff3333');
+    spawnParticles(x, y, '#ff3333', 12);
+    animateMuyu('hit-right');
+    triggerGlitch();
+    updateCombo();
+    save();
+}
+
+function animateMuyu(cls) {
+    DOM.muyu.classList.remove('hit', 'hit-right');
+    void DOM.muyu.offsetWidth; // force reflow
+    DOM.muyu.classList.add(cls);
+    setTimeout(() => DOM.muyu.classList.remove(cls), 80);
+}
+
+function updateCombo() {
+    const now = Date.now();
+    const dt = now - STATE.lastHitTime;
+    STATE.lastHitTime = now;
+
+    if (dt < 500) {
+        STATE.combo++;
+    } else {
+        STATE.combo = 1;
+    }
+
+    DOM.combo.textContent = `COMBO x${STATE.combo}`;
+    DOM.combo.classList.add('active');
+    DOM.combo.style.color = STATE.combo > 10 ? '#ff00ff' : '#fff';
+
+    clearTimeout(STATE.comboTimer);
+    STATE.comboTimer = setTimeout(() => {
+        STATE.combo = 0;
+        DOM.combo.classList.remove('active');
+    }, 800);
+}
+
+function triggerGlitch() {
+    DOM.glitch.classList.remove('active');
+    void DOM.glitch.offsetWidth;
+    DOM.glitch.classList.add('active');
+}
+
+// ============================================
+// ✨ FLOATING TEXT
+// ============================================
+function spawnFloatText(x, y, text, color) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.color = color;
+    el.style.textShadow = `0 0 10px ${color}`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+}
+
+// ============================================
+// 🎆 PARTICLE SYSTEM
+// ============================================
+const ctx = DOM.canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+    W = DOM.canvas.width = window.innerWidth;
+    H = DOM.canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.life = 1;
+        this.decay = Math.random() * 0.03 + 0.02;
+        this.size = Math.random() * 4 + 2;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1; // gravity
+        this.life -= this.decay;
+    }
+    draw() {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+    }
+}
+
+function animateParticles() {
+    ctx.clearRect(0, 0, W, H);
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+    requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ============================================
+// 🖱️ EVENT LISTENERS
+// ============================================
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.reset-btn')) return;
+    triggerMerit(e.clientX, e.clientY);
+});
+
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    triggerGrudge(e.clientX, e.clientY);
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault();
+        const rect = DOM.muyu.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        triggerMerit(cx, cy);
+    }
+});
+
+// 阻止移动端双击缩放
+document.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.reset-btn')) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    triggerMerit(touch.clientX, touch.clientY);
+}, { passive: false });
+</script>
+</body>
+</html>
