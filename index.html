@@ -2,649 +2,786 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ethereal Dreamscape | 梦幻花海</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>光之捕手 · 花信</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <style>
-/* =========================================
-   1. CORE VARIABLES & RESET
-   ========================================= */
 :root {
-    --gold: #d4af37;
-    --gold-light: #f3e5ab;
-    --pink-soft: #ffb7c5;
-    --pink-deep: #e6a0b4;
-    --lavender: #c8a2c8;
-    --sunset-orange: #ff9a76;
-    --glass-bg: rgba(255, 255, 255, 0.12);
-    --glass-border: rgba(255, 255, 255, 0.25);
-    --glass-blur: 24px;
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --gold: #e8c57a;
     --text-main: #fff;
-    --text-muted: rgba(255, 255, 255, 0.75);
 }
-
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+body { font-family: 'Noto Serif SC', serif; background: #1a0f14; color: var(--text-main); }
 
-html { scroll-behavior: smooth; }
+#gameCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-body {
-    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
-    background: #1a0f14;
-    color: var(--text-main);
-    overflow-x: hidden;
-    min-height: 100vh;
-    line-height: 1.6;
+.ui-layer { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.ui-layer > * { pointer-events: auto; }
+
+/* HUD 增强 */
+.hud { position: absolute; top: 24px; left: 0; width: 100%; padding: 0 32px; display: flex; justify-content: space-between; align-items: flex-start; opacity: 0; transition: opacity 0.8s ease; }
+.hud.visible { opacity: 1; }
+.hud-left { display: flex; flex-direction: column; gap: 8px; }
+.hud-target { font-size: 0.9rem; letter-spacing: 2px; color: rgba(255,255,255,0.8); }
+.hud-progress { display: flex; gap: 6px; }
+.hud-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--gold); background: transparent; transition: all 0.4s ease; }
+.hud-dot.filled { background: var(--gold); box-shadow: 0 0 8px var(--gold); transform: scale(1.2); }
+
+/* 能量槽 */
+.energy-bar-wrap { width: 120px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.energy-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), #fff); transition: width 0.3s ease; }
+.energy-hint { font-size: 0.65rem; color: var(--gold); opacity: 0; transition: opacity 0.3s; letter-spacing: 1px; margin-top: 2px; }
+.energy-hint.ready { opacity: 1; animation: pulse 1.5s infinite; }
+
+@keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+/* Combo 浮动文字 */
+.combo-text {
+    position: fixed; pointer-events: none; z-index: 8;
+    font-family: 'ZCOOL XiaoWei', serif; font-size: 1.4rem;
+    color: var(--gold); text-shadow: 0 0 10px rgba(232,197,122,0.5);
+    animation: comboFloat 0.8s ease-out forwards;
 }
-
-/* =========================================
-   2. DREAMY BACKGROUND SCENE (Pure CSS)
-   ========================================= */
-.scene-container {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: -1;
-    overflow: hidden;
-}
-
-/* 2.1 Golden Hour Sky Gradient */
-.sky {
-    position: absolute;
-    width: 100%; height: 100%;
-    background: 
-        radial-gradient(ellipse at 50% 0%, rgba(255,200,150,0.4) 0%, transparent 60%),
-        linear-gradient(180deg, 
-            #2d1b3d 0%, 
-            #5c3a6e 15%, 
-            #a86c8f 30%, 
-            #e6a0b4 45%, 
-            #ffcfb0 60%, 
-            #ffe8d6 75%,
-            #fff5ee 100%
-        );
+@keyframes comboFloat {
+    0% { opacity: 1; transform: translateY(0) scale(0.8); }
+    100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
 }
 
-/* 2.2 Sun Glow & Volumetric Rays */
-.sun-glow {
-    position: absolute;
-    top: 15%; left: 50%;
-    transform: translateX(-50%);
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(255,240,220,0.9) 0%, rgba(255,200,150,0.4) 40%, transparent 70%);
-    border-radius: 50%;
-    filter: blur(20px);
-    animation: sunPulse 8s ease-in-out infinite alternate;
-}
-
-.light-rays {
-    position: absolute;
-    top: -20%; left: 50%;
-    transform: translateX(-50%);
-    width: 200%; height: 120%;
-    background: conic-gradient(
-        from 0deg at 50% 0%,
-        transparent 0deg, rgba(255,240,220,0.08) 10deg, transparent 20deg,
-        transparent 30deg, rgba(255,240,220,0.05) 40deg, transparent 50deg,
-        transparent 60deg, rgba(255,240,220,0.08) 70deg, transparent 80deg,
-        transparent 90deg, rgba(255,240,220,0.05) 100deg, transparent 110deg,
-        transparent 360deg
-    );
-    animation: raysRotate 60s linear infinite;
-    pointer-events: none;
-}
-
-/* 2.3 Misty Horizon & Flower Field Base */
-.mist-layer {
-    position: absolute;
-    bottom: 20%; left: 0;
-    width: 100%; height: 40%;
-    background: linear-gradient(0deg, rgba(230,160,180,0.6) 0%, rgba(200,162,200,0.3) 40%, transparent 100%);
-    filter: blur(40px);
-    opacity: 0.8;
-}
-
-.flower-field-base {
-    position: absolute;
-    bottom: 0; left: 0;
-    width: 100%; height: 35%;
-    background: 
-        radial-gradient(ellipse at 20% 100%, rgba(255,183,197,0.8) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.6) 0%, transparent 40%),
-        radial-gradient(ellipse at 80% 100%, rgba(255,183,197,0.7) 0%, transparent 50%),
-        linear-gradient(0deg, #3d2030 0%, rgba(100,50,70,0.8) 30%, transparent 100%);
-}
-
-/* 2.4 Lens Flare Overlay */
-.lens-flare {
-    position: absolute;
-    top: 20%; left: 45%;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 40%);
-    mix-blend-mode: screen;
-    animation: flareDrift 12s ease-in-out infinite alternate;
-    pointer-events: none;
-}
-
-/* 2.5 Dreamy Haze Overlay */
-.haze-overlay {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(26,15,20,0.4) 100%);
-    pointer-events: none;
-}
-
-/* Animations */
-@keyframes sunPulse { 0% { opacity: 0.8; transform: translateX(-50%) scale(1); } 100% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
-@keyframes raysRotate { from { transform: translateX(-50%) rotate(0deg); } to { transform: translateX(-50%) rotate(360deg); } }
-@keyframes flareDrift { 0% { opacity: 0.5; transform: translate(0,0); } 100% { opacity: 0.8; transform: translate(30px, -20px); } }
-
-/* =========================================
-   3. PARTICLE SYSTEMS (Petals, Fireflies, Hearts)
-   ========================================= */
-.petal {
-    position: fixed;
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 50% 0 50% 0;
-    opacity: 0;
-    will-change: transform, opacity;
-}
-
-.firefly {
-    position: fixed;
-    pointer-events: none;
-    z-index: 2;
-    border-radius: 50%;
-    background: #fffde0;
-    box-shadow: 0 0 6px 2px rgba(255,253,200,0.8), 0 0 15px 4px rgba(255,200,100,0.4);
-    opacity: 0;
-    will-change: transform, opacity;
-}
-
-.heart-particle {
-    position: fixed;
-    pointer-events: none;
-    z-index: 2;
-    opacity: 0;
-    will-change: transform, opacity;
-}
-.heart-particle::before, .heart-particle::after {
-    content: ''; position: absolute;
-    width: 10px; height: 16px;
-    background: rgba(255,183,197,0.6);
-    border-radius: 50% 50% 0 0;
-}
-.heart-particle::before { left: 0; transform: rotate(-45deg); transform-origin: bottom right; }
-.heart-particle::after { left: 7px; transform: rotate(45deg); transform-origin: bottom left; }
-
-/* =========================================
-   4. UI LAYOUT & GLASSMORPHISM
-   ========================================= */
-.page-wrapper {
-    position: relative;
-    z-index: 10;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-}
-
-/* Navigation */
-.nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 30px 0;
-    animation: fadeInDown 1.2s ease-out;
-}
-.nav-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--gold-light), var(--gold));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.nav-links { display: flex; gap: 32px; list-style: none; }
-.nav-links a {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 1rem;
-    letter-spacing: 1.5px;
-    transition: color 0.3s;
-    position: relative;
-}
-.nav-links a::after {
-    content: ''; position: absolute; bottom: -4px; left: 0;
-    width: 0; height: 1px;
-    background: var(--gold);
-    transition: width 0.3s ease;
-}
-.nav-links a:hover { color: #fff; }
-.nav-links a:hover::after { width: 100%; }
-
-/* Hero Section */
-.hero {
-    text-align: center;
-    padding: 100px 0 80px;
-    animation: fadeInUp 1.5s ease-out;
-}
-.hero-tag {
-    font-size: 0.9rem;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    color: var(--gold-light);
-    margin-bottom: 20px;
-    display: block;
-}
-.hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(3rem, 8vw, 6rem);
-    font-weight: 700;
-    line-height: 1.1;
-    margin-bottom: 24px;
-    background: linear-gradient(135deg, #fff 0%, var(--pink-soft) 50%, var(--gold-light) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.hero-divider {
-    width: 80px; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    margin: 30px auto;
-    position: relative;
-}
-.hero-divider::after {
-    content: '♡'; position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--gold);
-    font-size: 0.8rem;
-    background: transparent;
-    padding: 0 12px;
-}
-.hero-desc {
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    max-width: 560px;
-    margin: 0 auto;
-    font-weight: 300;
-}
-
-/* Glass Cards Grid */
-.cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 30px;
-    padding: 40px 0 80px;
-}
-
-.glass-card {
+/* Glass Cards */
+.glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 44px 36px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
-    opacity: 0;
-    transform: translateY(40px);
+    border-radius: 24px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 420px; width: 90%;
+    position: relative; overflow: hidden;
+    opacity: 0; transform: translateY(20px) scale(0.97);
+    transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.glass-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.8s ease, transform 0.8s ease, box-shadow 0.4s ease, border-color 0.4s ease;
-}
-.glass-card::before {
+.glass-panel.visible { opacity: 1; transform: translateY(0) scale(1); }
+.glass-panel::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
 }
-.glass-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 60px rgba(230,160,180,0.15), 0 0 30px rgba(212,175,55,0.08);
-    border-color: rgba(212,175,55,0.4);
-}
 
-.card-icon {
-    width: 52px; height: 52px;
-    border: 1.5px solid var(--gold);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    margin-bottom: 24px;
-    color: var(--gold-light);
-    background: rgba(212,175,55,0.06);
-}
-.card-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #fff;
-}
-.card-line {
-    width: 40px; height: 1.5px;
-    background: linear-gradient(90deg, var(--gold), transparent);
-    margin: 14px 0 18px;
-}
-.card-text {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    font-weight: 300;
-    line-height: 1.8;
-}
+.panel-tag { font-size: 0.75rem; letter-spacing: 5px; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+.panel-title { font-family: 'ZCOOL XiaoWei', serif; font-size: 2rem; margin-bottom: 12px; line-height: 1.4; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.panel-desc { font-size: 1rem; color: rgba(255,255,255,0.75); line-height: 1.8; font-weight: 300; margin-bottom: 28px; white-space: pre-line; }
+.panel-poem { font-family: 'ZCOOL XiaoWei', serif; font-size: 1.3rem; line-height: 2.2; color: rgba(255,255,255,0.9); margin-bottom: 24px; white-space: pre-line; }
+.panel-stats { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 20px; letter-spacing: 1px; }
 
-/* Quote Section */
-.quote-section {
-    text-align: center;
-    padding: 60px 0 100px;
-    max-width: 700px;
-    margin: 0 auto;
-    opacity: 0; transform: translateY(30px);
-}
-.quote-section.visible { opacity: 1; transform: translateY(0); transition: all 1s ease; }
-.quote-card {
-    background: rgba(255,255,255,0.07);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 24px;
-    padding: 56px 48px;
-    position: relative;
-}
-.quote-card::before {
-    content: '"'; position: absolute; top: 10px; left: 24px;
-    font-family: 'Playfair Display', serif;
-    font-size: 8rem; color: rgba(212,175,55,0.1);
-    line-height: 1; pointer-events: none;
-}
-.quote-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.7rem;
-    font-style: italic;
-    font-weight: 400;
-    line-height: 1.8;
-    color: rgba(255,255,255,0.92);
-}
-.quote-author {
-    margin-top: 28px;
-    font-size: 0.95rem;
-    color: var(--gold);
-    letter-spacing: 4px;
-    font-weight: 300;
-}
-
-/* CTA Button */
-.cta-wrapper { text-align: center; padding-bottom: 100px; opacity: 0; transform: translateY(20px); }
-.cta-wrapper.visible { opacity: 1; transform: translateY(0); transition: all 0.8s ease; }
-.cta-btn {
-    display: inline-block;
-    padding: 18px 52px;
-    border: 1.5px solid var(--gold);
-    border-radius: 50px;
-    color: var(--gold-light);
-    text-decoration: none;
-    font-size: 1rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    background: rgba(212,175,55,0.05);
-    transition: all 0.5s ease;
+.btn {
+    display: inline-block; padding: 14px 44px;
+    border: 1px solid var(--gold); border-radius: 50px;
+    color: var(--gold); text-decoration: none;
+    font-size: 0.9rem; letter-spacing: 3px;
+    background: rgba(232,197,122,0.06);
+    cursor: pointer; transition: all 0.4s ease;
     position: relative; overflow: hidden;
 }
-.cta-btn::before {
+.btn::before {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(255,183,197,0.2));
+    background: linear-gradient(135deg, rgba(232,197,122,0.2), rgba(255,183,197,0.15));
     transform: scaleX(0); transform-origin: left;
-    transition: transform 0.5s ease;
-    border-radius: 50px;
+    transition: transform 0.4s ease; border-radius: 50px;
 }
-.cta-btn:hover { color: #fff; border-color: var(--gold-light); box-shadow: 0 0 30px rgba(212,175,55,0.2); }
-.cta-btn:hover::before { transform: scaleX(1); }
-.cta-btn span { position: relative; z-index: 1; }
+.btn:hover { color: #fff; border-color: #fff; box-shadow: 0 0 24px rgba(232,197,122,0.25); }
+.btn:hover::before { transform: scaleX(1); }
+.btn span { position: relative; z-index: 1; }
 
-/* Footer */
-.footer {
-    text-align: center;
-    padding: 40px 0;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.35);
-    letter-spacing: 2px;
+.ripple {
+    position: fixed; pointer-events: none; z-index: 5;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,0.4);
+    animation: rippleAnim 0.6s ease-out forwards;
+}
+@keyframes rippleAnim {
+    0% { width: 0; height: 0; opacity: 1; }
+    100% { width: 80px; height: 80px; opacity: 0; }
 }
 
-/* Keyframes */
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+.hidden { display: none !important; }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .nav-links { display: none; }
-    .hero { padding: 60px 0 50px; }
-    .cards-grid { grid-template-columns: 1fr; }
-    .quote-card { padding: 40px 28px; }
-    .quote-text { font-size: 1.3rem; }
+@media (max-width: 480px) {
+    .glass-panel { padding: 36px 28px; }
+    .panel-title { font-size: 1.6rem; }
+    .panel-poem { font-size: 1.1rem; }
+    .hud { padding: 0 20px; }
 }
 </style>
 </head>
 <body>
 
-<!-- ===== BACKGROUND SCENE ===== -->
-<div class="scene-container">
-    <div class="sky"></div>
-    <div class="sun-glow"></div>
-    <div class="light-rays"></div>
-    <div class="mist-layer"></div>
-    <div class="flower-field-base"></div>
-    <div class="lens-flare"></div>
-    <div class="haze-overlay"></div>
-</div>
+<canvas id="gameCanvas"></canvas>
 
-<!-- ===== MAIN CONTENT ===== -->
-<div class="page-wrapper">
-    
-    <!-- Nav -->
-    <nav class="nav">
-        <div class="nav-logo">Éternel ♡</div>
-        <ul class="nav-links">
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Story</a></li>
-            <li><a href="#">Gallery</a></li>
-            <li><a href="#">Moments</a></li>
-        </ul>
-    </nav>
-
-    <!-- Hero -->
-    <section class="hero">
-        <span class="hero-tag">Welcome to the Dreamscape</span>
-        <h1 class="hero-title">Where Petals<br>Meet the Light</h1>
-        <div class="hero-divider"></div>
-        <p class="hero-desc">漫步在无尽的粉色樱花与白色满天星之间，感受金色夕阳与薰衣草色光芒交织的梦幻世界。每一片飘落的花瓣，都是一封未寄出的情书。</p>
-    </section>
-
-    <!-- Glass Cards -->
-    <section class="cards-grid">
-        <div class="glass-card reveal">
-            <div class="card-icon">✿</div>
-            <h3 class="card-title">Cherry Blossom Fields</h3>
-            <div class="card-line"></div>
-            <p class="card-text">无尽花海在黄金时刻绽放，阳光穿透花瓣间隙，营造出神圣而温柔的体积光效果，仿佛置身于永恒的春日梦境。</p>
+<div class="ui-layer">
+    <div class="hud" id="hud">
+        <div class="hud-left">
+            <div class="hud-target" id="hudTarget"></div>
+            <div class="energy-bar-wrap"><div class="energy-bar" id="energyBar"></div></div>
+            <div class="energy-hint" id="energyHint">✦ 长按停滞时光 ✦</div>
         </div>
-        <div class="glass-card reveal">
-            <div class="card-icon">✧</div>
-            <h3 class="card-title">Golden Hour Magic</h3>
-            <div class="card-line"></div>
-            <p class="card-text">温暖的金色夕阳与柔和的薰衣草色环境光交融，萤火虫在暮色中起舞，镜头光晕为画面增添电影般的质感。</p>
-        </div>
-        <div class="glass-card reveal">
-            <div class="card-icon">♡</div>
-            <h3 class="card-title">Ethereal Romance</h3>
-            <div class="card-line"></div>
-            <p class="card-text">毛玻璃质感的卡片悬浮于花海之上，精致的金色线条勾勒出优雅的轮廓，心形粒子在空气中缓缓升腾。</p>
-        </div>
-    </section>
-
-    <!-- Quote -->
-    <section class="quote-section reveal">
-        <div class="quote-card">
-            <p class="quote-text">In the garden of memory, we walk forever among cherry blossoms, bathed in the golden light of an eternal sunset, where every petal carries a whispered promise.</p>
-            <p class="quote-author">— A DREAMER'S JOURNAL</p>
-        </div>
-    </section>
-
-    <!-- CTA -->
-    <div class="cta-wrapper reveal">
-        <a href="#" class="cta-btn"><span>Enter the Dreamscape</span></a>
+        <div class="hud-progress" id="hudProgress"></div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>Crafted with love · Éternel Dreamscape © 2026</p>
-    </footer>
+    <div class="glass-panel visible" id="startPanel">
+        <div class="panel-tag">✦ 光之捕手 ✦</div>
+        <h1 class="panel-title" id="startTitle"></h1>
+        <p class="panel-desc" id="startDesc"></p>
+        <div class="btn" id="startBtn"><span>踏入花海</span></div>
+    </div>
+
+    <div class="glass-panel hidden" id="resultPanel">
+        <div class="panel-tag">✦ 今日花签 ✦</div>
+        <div class="panel-poem" id="resultPoem"></div>
+        <div class="panel-stats" id="resultStats"></div>
+        <p class="panel-desc" id="resultDesc"></p>
+        <div class="btn" id="replayBtn"><span>再遇一次</span></div>
+    </div>
 </div>
 
 <script>
 /* =========================================
-   PARTICLE SYSTEM ENGINE
+   AUDIO ENGINE - 程序化音频合成
    ========================================= */
-
-// --- Floating Petals ---
-function createPetal() {
-    const petal = document.createElement('div');
-    petal.classList.add('petal');
+class AudioEngine {
+    constructor() {
+        this.ctx = null;
+        this.initialized = false;
+        this.baseFreq = 440;
+    }
     
-    const size = Math.random() * 12 + 6;
-    const colors = [
-        'rgba(255,183,197,0.7)', 'rgba(255,200,210,0.6)',
-        'rgba(255,240,243,0.5)', 'rgba(230,160,180,0.6)',
-        'rgba(200,162,200,0.4)'
-    ];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const startX = Math.random() * window.innerWidth;
-    const duration = Math.random() * 10 + 8;
-    const sway = Math.random() * 200 - 100;
-    const rotation = Math.random() * 720;
+    init() {
+        if (this.initialized) return;
+        try {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.initialized = true;
+            this.startAmbient();
+        } catch(e) { console.warn('Audio not supported'); }
+    }
     
-    petal.style.cssText = `
-        width: ${size}px; height: ${size * 0.7}px;
-        background: ${color};
-        left: ${startX}px; top: -20px;
-        box-shadow: 0 0 ${size/3}px ${color};
-    `;
+    // 空灵风铃音效 - 音高随combo递增
+    playCollect(comboLevel) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        
+        // 五声音阶频率映射
+        const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66];
+        const freq = scale[Math.min(comboLevel, scale.length - 1)];
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx.currentTime + 0.1);
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 2000;
+        
+        gain.gain.setValueAtTime(0, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.8);
+        
+        osc.connect(filter).connect(gain).connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.8);
+    }
     
-    // Use Web Animations API for unique per-petal keyframes
-    const animation = petal.animate([
-        { transform: `translateY(-20px) translateX(0) rotate(0deg)`, opacity: 0 },
-        { opacity: 0.8, offset: 0.1 },
-        { transform: `translateY(${window.innerHeight * 0.3}px) translateX(${sway}px) rotate(${rotation * 0.3}deg)`, opacity: 0.7, offset: 0.3 },
-        { transform: `translateY(${window.innerHeight * 0.6}px) translateX(${-sway * 0.5}px) rotate(${rotation * 0.6}deg)`, opacity: 0.5, offset: 0.6 },
-        { transform: `translateY(${window.innerHeight + 50}px) translateX(${sway * 0.3}px) rotate(${rotation}deg)`, opacity: 0 }
-    ], {
-        duration: duration * 1000,
-        easing: 'ease-in-out',
-        fill: 'forwards'
-    });
+    // 误触柔和反馈
+    playMiss() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+        osc.connect(gain).connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
+    }
     
-    document.body.appendChild(petal);
-    animation.onfinish = () => petal.remove();
+    // 时光停滞持续音效
+    startSlowMo() {
+        if (!this.ctx || this.slowMoOsc) return;
+        this.slowMoOsc = this.ctx.createOscillator();
+        this.slowMoGain = this.ctx.createGain();
+        this.slowMoOsc.type = 'sine';
+        this.slowMoOsc.frequency.value = 180;
+        this.slowMoGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.slowMoGain.gain.linearRampToValueAtTime(0.06, this.ctx.currentTime + 0.3);
+        this.slowMoOsc.connect(this.slowMoGain).connect(this.ctx.destination);
+        this.slowMoOsc.start();
+    }
+    
+    stopSlowMo() {
+        if (!this.slowMoOsc) return;
+        this.slowMoGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+        this.slowMoOsc.stop(this.ctx.currentTime + 0.3);
+        this.slowMoOsc = null;
+        this.slowMoGain = null;
+    }
+    
+    // 环境白噪音
+    startAmbient() {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * 2;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.02;
+        noise.connect(filter).connect(gain).connect(this.ctx.destination);
+        noise.start();
+    }
 }
-
-// --- Fireflies ---
-function createFirefly() {
-    const ff = document.createElement('div');
-    ff.classList.add('firefly');
-    
-    const size = Math.random() * 4 + 2;
-    const x = Math.random() * window.innerWidth;
-    const y = Math.random() * window.innerHeight * 0.7 + window.innerHeight * 0.15;
-    const duration = Math.random() * 5 + 4;
-    const dx = Math.random() * 100 - 50;
-    const dy = Math.random() * -80 - 20;
-    
-    ff.style.cssText = `width:${size}px; height:${size}px; left:${x}px; top:${y}px;`;
-    
-    const animation = ff.animate([
-        { opacity: 0, transform: 'translate(0,0) scale(0.5)' },
-        { opacity: 1, transform: `translate(${dx*0.3}px,${dy*0.3}px) scale(1)`, offset: 0.25 },
-        { opacity: 0.5, transform: `translate(${dx*0.6}px,${dy*0.6}px) scale(0.8)`, offset: 0.5 },
-        { opacity: 1, transform: `translate(${dx}px,${dy}px) scale(1.1)`, offset: 0.75 },
-        { opacity: 0, transform: `translate(${dx*1.2}px,${dy*1.2}px) scale(0.3)` }
-    ], {
-        duration: duration * 1000,
-        easing: 'ease-in-out',
-        fill: 'forwards'
-    });
-    
-    document.body.appendChild(ff);
-    animation.onfinish = () => ff.remove();
-}
-
-// --- Heart Particles ---
-function createHeart() {
-    const heart = document.createElement('div');
-    heart.classList.add('heart-particle');
-    
-    const x = Math.random() * window.innerWidth;
-    const y = Math.random() * window.innerHeight * 0.4 + window.innerHeight * 0.5;
-    const duration = Math.random() * 6 + 6;
-    const scale = Math.random() * 0.6 + 0.3;
-    
-    heart.style.cssText = `left:${x}px; top:${y}px; transform:scale(${scale});`;
-    
-    const animation = heart.animate([
-        { opacity: 0, transform: `scale(${scale}) translateY(0)` },
-        { opacity: 0.6, offset: 0.15 },
-        { opacity: 0.4, transform: `scale(${scale * 0.7}) translateY(-200px)`, offset: 0.7 },
-        { opacity: 0, transform: `scale(${scale * 0.3}) translateY(-400px)` }
-    ], {
-        duration: duration * 1000,
-        easing: 'ease-out',
-        fill: 'forwards'
-    });
-    
-    document.body.appendChild(heart);
-    animation.onfinish = () => heart.remove();
-}
-
-// Start particle systems
-setInterval(createPetal, 500);
-setInterval(createFirefly, 1800);
-setInterval(createHeart, 3000);
-
-// Initial burst
-for (let i = 0; i < 10; i++) setTimeout(createPetal, i * 150);
-for (let i = 0; i < 5; i++) setTimeout(createFirefly, i * 400);
-for (let i = 0; i < 3; i++) setTimeout(createHeart, i * 600);
-
 
 /* =========================================
-   SCROLL REVEAL OBSERVER
+   ROMANCE RNG
    ========================================= */
-const revealElements = document.querySelectorAll('.reveal');
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
+class RomanceRNG {
+    constructor() { this.seed = Date.now() ^ (Math.random() * 0xFFFFFFFF >>> 0); }
+    next() {
+        let t = this.seed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+    range(min, max) { return min + this.next() * (max - min); }
+    int(min, max) { return Math.floor(this.range(min, max + 1)); }
+    pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+}
+
+/* =========================================
+   CONFIG POOLS
+   ========================================= */
+const THEMES = [
+    { name: '晚樱黄昏', skyTop: '#2d1b3d', skyMid: '#a86c8f', skyBot: '#ffe8d6', petalColor: [255,183,197], glowColor: [255,220,200] },
+    { name: '薰衣草暮', skyTop: '#1a1040', skyMid: '#7b5ea7', skyBot: '#e8d5f0', petalColor: [200,170,220], glowColor: [220,200,255] },
+    { name: '蜜桃星云', skyTop: '#3d1b2d', skyMid: '#c47a8a', skyBot: '#fff0e0', petalColor: [255,200,180], glowColor: [255,230,210] },
+    { name: '薄荷月夜', skyTop: '#0a1628', skyMid: '#3a6b7a', skyBot: '#d0e8e0', petalColor: [180,220,210], glowColor: [200,255,240] },
+    { name: '琥珀暖夕', skyTop: '#3d2a10', skyMid: '#b8863a', skyBot: '#fff5e0', petalColor: [240,210,160], glowColor: [255,240,200] },
+    { name: '玫瑰晨曦', skyTop: '#2d1028', skyMid: '#c46080', skyBot: '#ffe0e8', petalColor: [255,170,190], glowColor: [255,210,220] },
+];
+
+const POEMS = [
+    "你踏过的每一寸光阴\n都开成了不败的花",
+    "晚风把心事吹成花瓣\n落在你肩上便是春天",
+    "我收集了三千缕暮色\n只为换你一个回眸",
+    "星辰坠入你的眼底\n从此人间有了银河",
+    "所有温柔的相遇\n都是久别重逢的花期",
+    "你把黄昏酿成诗\n我把思念种成海",
+    "月光穿过指缝的瞬间\n我看见了永恒的形状",
+    "每一片飘落的花瓣\n都是未曾说出口的想念",
+];
+
+const TARGET_TYPES = [
+    { name: '流光', type: 'glow', emoji: '✧' },
+    { name: '晚樱', type: 'petal', emoji: '✿' },
+    { name: '星尘', type: 'star', emoji: '⋆' },
+];
+
+const ENCOURAGEMENTS = [
+    "有些花期需要等待，你已经很温柔了",
+    "未集齐的光，化作了下次相遇的伏笔",
+    "风记得你来过，这就够了",
+    "不必追赶所有美好，你本身就是风景",
+];
+
+const COMBO_WORDS = ['✦', '✦✦', '✦✦✦', '花雨', '星河', '永恒'];
+
+/* =========================================
+   PERSISTENCE
+   ========================================= */
+class SaveManager {
+    static load() {
+        try { return JSON.parse(localStorage.getItem('hanabi_save')) || { bestCombo: 0, poemsUnlocked: [] }; }
+        catch { return { bestCombo: 0, poemsUnlocked: [] }; }
+    }
+    static save(data) {
+        try { localStorage.setItem('hanabi_save', JSON.stringify(data)); } catch {}
+    }
+    static recordPoem(poem) {
+        const data = this.load();
+        if (!data.poemsUnlocked.includes(poem)) {
+            data.poemsUnlocked.push(poem);
+            this.save(data);
         }
-    });
-}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-
-revealElements.forEach(el => observer.observe(el));
-
+    }
+    static updateBestCombo(combo) {
+        const data = this.load();
+        if (combo > data.bestCombo) { data.bestCombo = combo; this.save(data); }
+    }
+}
 
 /* =========================================
-   SUBTLE MOUSE PARALLAX
+   CANVAS RENDERER
    ========================================= */
-document.addEventListener('mousemove', (e) => {
-    const x = (e.clientX / window.innerWidth - 0.5) * 2;
-    const y = (e.clientY / window.innerHeight - 0.5) * 2;
-    const scene = document.querySelector('.scene-container');
-    scene.style.transform = `translate(${x * -6}px, ${y * -4}px)`;
-});
+class GameRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.entities = [];
+        this.particles = [];
+        this.trail = [];
+        this.dpr = window.devicePixelRatio || 1;
+        this.width = 0; this.height = 0;
+        this.theme = null;
+        this.mouseX = -100; this.mouseY = -100;
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+    
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width * this.dpr;
+        this.canvas.height = this.height * this.dpr;
+        this.canvas.style.width = this.width + 'px';
+        this.canvas.style.height = this.height + 'px';
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    }
+    
+    setTheme(theme) { this.theme = theme; }
+    
+    drawBackground(timeScale) {
+        if (!this.theme) return;
+        const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
+        grad.addColorStop(0, this.theme.skyTop);
+        grad.addColorStop(0.5, this.theme.skyMid);
+        grad.addColorStop(1, this.theme.skyBot);
+        this.ctx.fillStyle = grad;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        const sunGrad = this.ctx.createRadialGradient(this.width * 0.5, this.height * 0.18, 0, this.width * 0.5, this.height * 0.18, this.width * 0.35);
+        sunGrad.addColorStop(0, `rgba(${this.theme.glowColor.join(',')}, ${0.3 * timeScale})`);
+        sunGrad.addColorStop(0.5, `rgba(${this.theme.glowColor.join(',')}, 0.08)`);
+        sunGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = sunGrad;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Slow-mo vignette overlay
+        if (timeScale < 0.9) {
+            const vig = this.ctx.createRadialGradient(this.width/2, this.height/2, this.height*0.3, this.width/2, this.height/2, this.height*0.8);
+            vig.addColorStop(0, 'transparent');
+            vig.addColorStop(1, `rgba(0,0,0,${0.3 * (1 - timeScale)})`);
+            this.ctx.fillStyle = vig;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+    }
+    
+    spawnEntity(type) {
+        const size = 12 + Math.random() * 16;
+        const x = Math.random() * this.width;
+        this.entities.push({
+            type, x, y: -30, baseX: x, size,
+            speed: 0.5 + Math.random() * 1.2,
+            swayAmp: 30 + Math.random() * 60,
+            swayFreq: 0.005 + Math.random() * 0.01,
+            phase: Math.random() * Math.PI * 2,
+            opacity: 0, maxOpacity: 0.6 + Math.random() * 0.4,
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.03,
+            alive: true, collected: false
+        });
+    }
+    
+    spawnBurst(x, y, color, count = 15) {
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+            const speed = 1.5 + Math.random() * 4;
+            this.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 1,
+                gravity: 0.05, friction: 0.97,
+                life: 1, decay: 0.012 + Math.random() * 0.015,
+                size: 2 + Math.random() * 4, color
+            });
+        }
+    }
+    
+    addTrailPoint(x, y) {
+        this.trail.push({ x, y, life: 1 });
+        if (this.trail.length > 20) this.trail.shift();
+    }
+    
+    update(dt, timeScale) {
+        const ts = timeScale; // Time scale multiplier
+        
+        for (let e of this.entities) {
+            if (!e.alive) continue;
+            e.y += e.speed * dt * 0.06 * ts;
+            e.x = e.baseX + Math.sin(e.y * e.swayFreq + e.phase) * e.swayAmp;
+            e.rotation += e.rotSpeed * dt * 0.06 * ts;
+            if (e.y < 50) e.opacity = Math.min(e.maxOpacity, e.opacity + 0.02 * dt * 0.06);
+            if (e.y > this.height - 50) e.opacity = Math.max(0, e.opacity - 0.03 * dt * 0.06);
+            if (e.y > this.height + 40) e.alive = false;
+        }
+        this.entities = this.entities.filter(e => e.alive);
+        
+        for (let p of this.particles) {
+            p.vx *= p.friction; p.vy *= p.friction;
+            p.vy += p.gravity * ts;
+            p.x += p.vx * dt * 0.06 * ts;
+            p.y += p.vy * dt * 0.06 * ts;
+            p.life -= p.decay * dt * 0.06;
+        }
+        this.particles = this.particles.filter(p => p.life > 0);
+        
+        // Trail decay
+        for (let t of this.trail) t.life -= 0.05 * dt * 0.06;
+        this.trail = this.trail.filter(t => t.life > 0);
+    }
+    
+    draw() {
+        this.drawBackground(1);
+        const ctx = this.ctx;
+        
+        // Draw trail
+        if (this.trail.length > 1 && this.theme) {
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (let i = 1; i < this.trail.length; i++) {
+                const t0 = this.trail[i-1], t1 = this.trail[i];
+                ctx.beginPath();
+                ctx.moveTo(t0.x, t0.y);
+                ctx.lineTo(t1.x, t1.y);
+                ctx.strokeStyle = `rgba(${this.theme.glowColor.join(',')},${t1.life * 0.4})`;
+                ctx.lineWidth = t1.life * 6;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        
+        for (let e of this.entities) {
+            if (!e.alive || e.collected) continue;
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            ctx.rotate(e.rotation);
+            ctx.globalAlpha = e.opacity;
+            const [r, g, b] = this.theme.petalColor;
+            
+            if (e.type === 'glow') {
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, e.size);
+                grad.addColorStop(0, `rgba(${this.theme.glowColor.join(',')}, 0.9)`);
+                grad.addColorStop(0.5, `rgba(${this.theme.glowColor.join(',')}, 0.3)`);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(0, 0, e.size, 0, Math.PI * 2); ctx.fill();
+            } else if (e.type === 'petal') {
+                ctx.fillStyle = `rgba(${r},${g},${b},0.85)`;
+                ctx.shadowColor = `rgba(${r},${g},${b},0.5)`; ctx.shadowBlur = 8;
+                ctx.beginPath(); ctx.ellipse(0, 0, e.size * 0.6, e.size, 0, 0, Math.PI * 2); ctx.fill();
+            } else if (e.type === 'star') {
+                ctx.fillStyle = 'rgba(255,255,240,0.9)';
+                ctx.shadowColor = 'rgba(255,255,240,0.6)'; ctx.shadowBlur = 12;
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const a = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                    const ox = Math.cos(a) * e.size * 0.7, oy = Math.sin(a) * e.size * 0.7;
+                    const ia = a + Math.PI / 5;
+                    const ix = Math.cos(ia) * e.size * 0.3, iy = Math.sin(ia) * e.size * 0.3;
+                    if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+                    ctx.lineTo(ix, iy);
+                }
+                ctx.closePath(); ctx.fill();
+            }
+            ctx.restore();
+        }
+        
+        for (let p of this.particles) {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+    }
+    
+    getHitEntity(x, y, radius = 45) {
+        for (let e of this.entities) {
+            if (!e.alive || e.collected) continue;
+            const dx = e.x - x, dy = e.y - y;
+            if (dx * dx + dy * dy < (radius + e.size) ** 2) return e;
+        }
+        return null;
+    }
+}
+
+/* =========================================
+   GAME CONTROLLER
+   ========================================= */
+class GameController {
+    constructor() {
+        this.rng = new RomanceRNG();
+        this.audio = new AudioEngine();
+        this.renderer = new GameRenderer(document.getElementById('gameCanvas'));
+        this.state = 'START';
+        this.targetCount = 0;
+        this.collected = 0;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.energy = 0; // 0~100
+        this.timeScale = 1;
+        this.isSlowMo = false;
+        this.currentTheme = null;
+        this.currentTargetType = null;
+        this.spawnTimer = 0;
+        this.lastTime = performance.now();
+        this.pointerDown = false;
+        
+        this.startPanel = document.getElementById('startPanel');
+        this.resultPanel = document.getElementById('resultPanel');
+        this.hud = document.getElementById('hud');
+        this.hudTarget = document.getElementById('hudTarget');
+        this.hudProgress = document.getElementById('hudProgress');
+        this.energyBar = document.getElementById('energyBar');
+        this.energyHint = document.getElementById('energyHint');
+        
+        this.bindEvents();
+        this.initRound();
+        this.loop();
+    }
+    
+    initRound() {
+        this.rng = new RomanceRNG();
+        this.currentTheme = this.rng.pick(THEMES);
+        this.renderer.setTheme(this.currentTheme);
+        this.currentTargetType = this.rng.pick(TARGET_TYPES);
+        this.targetCount = this.rng.int(3, 5);
+        this.collected = 0;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.energy = 0;
+        this.updateEnergyUI();
+        
+        document.getElementById('startTitle').textContent = this.currentTheme.name;
+        document.getElementById('startDesc').textContent = 
+            `在这片${this.currentTheme.name}中，\n请为我收集 ${this.targetCount} 颗${this.currentTargetType.name} ${this.currentTargetType.emoji}\n\n✦ 连续收集积攒能量\n✦ 长按屏幕可停滞时光`;
+    }
+    
+    startGame() {
+        this.audio.init();
+        this.state = 'PLAYING';
+        this.startPanel.classList.remove('visible');
+        setTimeout(() => {
+            this.startPanel.classList.add('hidden');
+            this.hud.classList.add('visible');
+            this.updateHUD();
+        }, 400);
+    }
+    
+    endGame(completed) {
+        this.state = 'RESULT';
+        this.hud.classList.remove('visible');
+        if (this.isSlowMo) this.stopSlowMo();
+        
+        SaveManager.updateBestCombo(this.maxCombo);
+        const poem = this.rng.pick(POEMS);
+        if (completed) SaveManager.recordPoem(poem);
+        
+        const saveData = SaveManager.load();
+        
+        setTimeout(() => {
+            this.resultPanel.classList.remove('hidden');
+            requestAnimationFrame(() => this.resultPanel.classList.add('visible'));
+            
+            document.getElementById('resultPoem').textContent = poem;
+            document.getElementById('resultStats').textContent = 
+                `最高连击 ${this.maxCombo} · 已解锁 ${saveData.poemsUnlocked.length}/${POEMS.length} 首花签`;
+            document.getElementById('resultDesc').textContent = 
+                completed 
+                    ? `你集齐了所有${this.currentTargetType.name}，花签已为你绽放。` 
+                    : this.rng.pick(ENCOURAGEMENTS);
+        }, 600);
+    }
+    
+    replay() {
+        this.resultPanel.classList.remove('visible');
+        setTimeout(() => {
+            this.resultPanel.classList.add('hidden');
+            this.renderer.entities = [];
+            this.renderer.particles = [];
+            this.renderer.trail = [];
+            this.initRound();
+            this.startPanel.classList.remove('hidden');
+            requestAnimationFrame(() => this.startPanel.classList.add('visible'));
+            this.state = 'START';
+        }, 500);
+    }
+    
+    updateHUD() {
+        this.hudTarget.textContent = `${this.currentTargetType.emoji} ${this.currentTargetType.name}  ${this.collected} / ${this.targetCount}`;
+        this.hudProgress.innerHTML = '';
+        for (let i = 0; i < this.targetCount; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'hud-dot' + (i < this.collected ? ' filled' : '');
+            this.hudProgress.appendChild(dot);
+        }
+    }
+    
+    updateEnergyUI() {
+        this.energyBar.style.width = this.energy + '%';
+        if (this.energy >= 100) {
+            this.energyHint.classList.add('ready');
+        } else {
+            this.energyHint.classList.remove('ready');
+        }
+    }
+    
+    startSlowMo() {
+        if (this.energy < 100 || this.isSlowMo) return;
+        this.isSlowMo = true;
+        this.timeScale = 0.2;
+        this.audio.startSlowMo();
+    }
+    
+    stopSlowMo() {
+        if (!this.isSlowMo) return;
+        this.isSlowMo = false;
+        this.timeScale = 1;
+        this.energy = 0;
+        this.updateEnergyUI();
+        this.audio.stopSlowMo();
+    }
+    
+    showComboText(x, y, combo) {
+        const word = COMBO_WORDS[Math.min(Math.floor(combo / 3), COMBO_WORDS.length - 1)];
+        if (combo < 2 && word === '✦') return;
+        const el = document.createElement('div');
+        el.className = 'combo-text';
+        el.textContent = word;
+        el.style.left = x + 'px';
+        el.style.top = (y - 30) + 'px';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+    
+    handleInput(x, y) {
+        if (this.state !== 'PLAYING') return;
+        
+        this.renderer.addTrailPoint(x, y);
+        
+        const hit = this.renderer.getHitEntity(x, y);
+        if (hit && hit.type === this.currentTargetType.type) {
+            hit.collected = true;
+            hit.alive = false;
+            this.collected++;
+            this.combo++;
+            this.maxCombo = Math.max(this.maxCombo, this.combo);
+            this.energy = Math.min(100, this.energy + 20);
+            this.updateEnergyUI();
+            this.updateHUD();
+            
+            const [r, g, b] = this.renderer.theme.glowColor;
+            this.renderer.spawnBurst(hit.x, hit.y, `rgba(${r},${g},${b},0.9)`);
+            this.audio.playCollect(this.combo);
+            this.showComboText(x, y, this.combo);
+            
+            if (this.collected >= this.targetCount) {
+                setTimeout(() => this.endGame(true), 800);
+            }
+        } else {
+            this.combo = 0;
+            this.showRipple(x, y);
+            this.audio.playMiss();
+        }
+    }
+    
+    showRipple(x, y) {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        ripple.style.left = (x - 40) + 'px';
+        ripple.style.top = (y - 40) + 'px';
+        document.body.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    }
+    
+    bindEvents() {
+        document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('replayBtn').addEventListener('click', () => this.replay());
+        
+        const canvas = this.renderer.canvas;
+        
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            this.pointerDown = true;
+            const x = e.clientX, y = e.clientY;
+            this.handleInput(x, y);
+            // Check slow-mo activation
+            if (this.state === 'PLAYING' && this.energy >= 100) {
+                this.startSlowMo();
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('pointermove', (e) => {
+            e.preventDefault();
+            this.renderer.mouseX = e.clientX;
+            this.renderer.mouseY = e.clientY;
+            if (this.state === 'PLAYING') {
+                this.renderer.addTrailPoint(e.clientX, e.clientY);
+            }
+        }, { passive: false });
+        
+        const releasePointer = () => {
+            this.pointerDown = false;
+            if (this.isSlowMo) this.stopSlowMo();
+        };
+        canvas.addEventListener('pointerup', releasePointer);
+        canvas.addEventListener('pointerleave', releasePointer);
+        canvas.addEventListener('pointercancel', releasePointer);
+    }
+    
+    loop() {
+        const now = performance.now();
+        const rawDt = Math.min(now - this.lastTime, 50);
+        this.lastTime = now;
+        
+        // Smooth time scale transition
+        const targetTs = this.isSlowMo ? 0.2 : 1;
+        this.timeScale += (targetTs - this.timeScale) * 0.1;
+        
+        if (this.state === 'PLAYING') {
+            this.spawnTimer += rawDt;
+            const spawnInterval = Math.max(300, 800 - this.renderer.width * 0.2);
+            if (this.spawnTimer > spawnInterval) {
+                this.spawnTimer = 0;
+                const type = this.rng.next() < 0.6 
+                    ? this.currentTargetType.type 
+                    : this.rng.pick(TARGET_TYPES).type;
+                this.renderer.spawnEntity(type);
+            }
+        } else {
+            this.spawnTimer += rawDt;
+            if (this.spawnTimer > 1200) {
+                this.spawnTimer = 0;
+                this.renderer.spawnEntity(this.rng.pick(TARGET_TYPES).type);
+            }
+        }
+        
+        this.renderer.update(rawDt, this.timeScale);
+        this.renderer.draw();
+        requestAnimationFrame(() => this.loop());
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => new GameController());
 </script>
 </body>
 </html>
